@@ -13,6 +13,9 @@ from typing_extensions import TypedDict, List
 # Generate a ES-384 private key with:
 # openssl ecparam -name secp384r1 -genkey -noout -out tmp/czid-private-key.pem
 
+# A locally-generated key at this path (used by tests/dev) is read if present.
+# Production never writes the key to disk; it is fetched from Secrets Manager and
+# loaded into an in-memory JWK (see load_private_key).
 PRIVATE_KEY_PATH = "/tmp/czid-private-key.pem"
 
 
@@ -21,9 +24,11 @@ class ProjectRole(TypedDict):
     roles: List[str]
 
 
-def fetch_private_key():
+def load_private_key() -> JWK:
+    # Tests/dev provide a locally-generated PEM at this path; use it if present.
     if os.path.isfile(PRIVATE_KEY_PATH):
-        return
+        with open(PRIVATE_KEY_PATH, "rb") as f:
+            return jwk.JWK.from_pem(f.read())
 
     env = os.environ.get("ENVIRONMENT")
     secret_name = f"{env}/czid-services-private-key"
@@ -37,11 +42,12 @@ def fetch_private_key():
     except ClientError as e:
         raise e
 
-    # Decrypts secret using the associated KMS key and stores the private key in a pem file.
+    # Load the KMS-decrypted PEM directly into an in-memory JWK. The private key
+    # is never written to disk (avoids clear-text key storage).
     secret = get_secret_value_response["SecretString"]
-    if secret:
-        with open(PRIVATE_KEY_PATH, "w") as f:
-            f.write(secret)
+    if not secret:
+        raise ValueError(f"Secret {secret_name} is empty")
+    return jwk.JWK.from_pem(secret.encode("utf-8"))
 
 
 def get_token_claims(private_key: JWK, token: str) -> dict:
@@ -145,9 +151,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    fetch_private_key()
-    with open(PRIVATE_KEY_PATH, "rb") as pemfile:
-        key = jwk.JWK.from_pem(pemfile.read())
+    key = load_private_key()
 
     if args.create_token:
         print(
