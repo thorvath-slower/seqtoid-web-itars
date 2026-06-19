@@ -27,15 +27,19 @@ jobs:
           --health-timeout 5s
           --health-retries 5
       db:
-        image: bitnami/mysql:5.7
+        # CZID-247: official mysql:5.7. bitnami/mysql:5.7 was delisted — Bitnami's "Secure
+        # Images" migration purged all versioned tags from the public bitnami/* catalog,
+        # so the pull 404s ("manifest unknown"). Official mysql:5.7 matches docker-compose.yml.
+        # The test suite connects as root with an empty password (config/database.yml `test`),
+        # so MYSQL_ALLOW_EMPTY_PASSWORD is the env it needs; mysql_native_password is the 5.7 default.
+        image: mysql:5.7
         options: >-
           --health-cmd "mysqladmin ping -h localhost"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
         env:
-          ALLOW_EMPTY_PASSWORD: yes
-          MYSQL_AUTHENTICATION_PLUGIN: mysql_native_password
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
           MYSQL_USER: test_user
           MYSQL_PASSWORD: test_password
     steps:
