@@ -3,11 +3,9 @@ name: Scheduled releases + deploys to staging
 # Regular release + deployments occur M/Thu @11am PT so no need to run this action on those days
 
 on:
-  schedule:
-    # Visit https://crontab.guru for more info on cron schedule expressions.
-    # The default timezone of GitHub Actions is Coordinated Universal Time (UTC).
-    # UTC is 7 hours ahead of PT, so 11am PT is 6pm UTC (1800 military time).
-    - cron: '0 18 * * 2,3,5' # Tuesday, Wednesday, Friday @ 11am PT
+  # CZID-236 (ITARS stabilization): scheduled trigger disabled — releases + deploys to CZI
+  # staging on dead [self-hosted, idseq-dev] runners. Re-enable after repointing to ITARS infra.
+  workflow_dispatch:
 
 env:
   AWS_DEFAULT_OUTPUT: json
