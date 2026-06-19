@@ -1,8 +1,9 @@
 name: idseq-web build-and-test
 
 on:
-  pull_request:
-    types: [opened, synchronize]
+  # CZID-236 (ITARS stabilization): PR trigger disabled — calls the reusable build that
+  # pushes to CZI ECR. Re-enable after repointing to ITARS infra.
+  workflow_dispatch:
 
 env:
   AWS_DEFAULT_OUTPUT: json
