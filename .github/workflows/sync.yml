@@ -1,11 +1,14 @@
 name: czid-web sync tasks
 
 on:
-  push:
-    branches: main
+  # CZID-236 (ITARS stabilization): auto-trigger disabled. This job mirror-force-pushes to
+  # the old chanzuckerberg/czid-web repo and must NEVER run from the ITARS stabilization repo.
+  workflow_dispatch:
 
 jobs:
   sync_repo:
+    # Hard guard: only the original CZI repo may run the mirror, even if manually dispatched.
+    if: ${{ github.repository == 'chanzuckerberg/czid-web' }}
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
