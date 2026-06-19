@@ -297,5 +297,4 @@ services:
 networks:
   default:
     name: czidnet
-    driver: overlay
-    attachable: true
+    driver: bridge
