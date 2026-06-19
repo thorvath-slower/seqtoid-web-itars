@@ -22,14 +22,25 @@ regexes = [
   '''GYbvZ9/uHy75wWWK4BO3jZGJ0noacv7GbTJI96wZgWQ=''',
 ]
 
+# Two history-only generic-api-key false positives (both gone from HEAD). These
+# were previously allowlisted by commit SHA, but the CZID-265 history rewrite
+# (git filter-repo) re-hashed every commit, so the pinned SHAs stopped matching
+# and gitleaks went red on main. Allowlisted here in a rewrite-proof way instead
+# (by path / by value), so a future history rewrite can't break the gate again.
+
 [[allowlists]]
-description = """Two history-only generic-api-key false positives (gone from HEAD), scoped by commit:
-- config/initializers/devise.rb @2ac2a771 (2017): the COMMENTED-OUT Devise generator example
-  `# config.secret_key = '...'` placeholder — not an active secret.
-- app/controllers/auth0_controller.rb @217aee56 (2019): the rule matched a token-refresh constant,
-  not a secret.
-Scoped to these commits so both files stay scanned for any future real secret."""
-commits = [
-  "217aee56a71e24fa55d7013205ed900842b052b4",
-  "2ac2a7712e06aa9675d8a85028c4744a294903ef",
+description = """config/initializers/devise.rb: the COMMENTED-OUT Devise generator
+placeholder `# config.secret_key = '<128 hex>'` (never active — Devise used
+secret_key_base). The file was removed from HEAD in "Remove Devise - part 2", so
+allowlisting the whole path costs no ongoing scan coverage and survives rewrites."""
+paths = [
+  '''config/initializers/devise\.rb''',
+]
+
+[[allowlists]]
+description = """app/controllers/auth0_controller.rb: generic-api-key mis-flagged the
+literal value of the MIN_TOKEN_REFRESH_IN_SECONDS constant (`60.seconds.to_i`).
+Allowlisted by that exact value so the controller stays scanned for real secrets."""
+regexes = [
+  '''60\.seconds\.to_i''',
 ]
