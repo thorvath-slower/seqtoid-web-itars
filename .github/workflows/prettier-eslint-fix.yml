@@ -1,11 +1,7 @@
 on:
-  pull_request:
-    paths:
-      - .github/**
-      - app/assets/src/**
-      # This action also syncs package.json + package-lock.json (npm ci).
-      - package.json
-      - package-lock.json
+  # CZID-236 (ITARS stabilization): PR trigger disabled — uses the CZI github-app-token to
+  # auto-commit lint fixes. Re-enable after repointing to an ITARS app token.
+  workflow_dispatch:
 
 name: lint-bot
 jobs:

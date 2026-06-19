@@ -1,11 +1,9 @@
 name: Build and Push Docker Images
 
 on:
-  push:
-    branches:
-      - "**"
-    tags-ignore:
-      - "**"
+  # CZID-236 (ITARS stabilization): auto-trigger disabled — pushes images to CZI ECR
+  # (DEV/PROD_AWS_ROLE + idseq-web repo). Re-enable after repointing to ITARS infra.
+  workflow_dispatch:
 
 env:
   AWS_DEFAULT_OUTPUT: json
