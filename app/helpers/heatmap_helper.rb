@@ -208,8 +208,23 @@ module HeatmapHelper
     results.values
   end
 
+  # Coerce a list of IDs to integers before they are interpolated into raw SQL.
+  # This is the injection guard for the hand-written taxon_counts queries below:
+  # the only safe thing to splice into an `IN (...)` list is an integer literal.
+  # Mirrors the existing `Integer(x) rescue nil` treatment of removedTaxonIds
+  # (see sample_taxons_dict) — invalid entries are dropped rather than raising,
+  # since legitimate taxon / pipeline-run IDs are always integers, so valid
+  # requests are unaffected and only malformed/malicious values are discarded.
+  def self.coerce_sql_ids(ids)
+    ids.map do |id|
+      Integer(id)
+    rescue ArgumentError, TypeError
+      nil
+    end.compact
+  end
+
   def self.fetch_samples_taxons_counts(samples, taxon_ids, parent_ids, background_id, update_background_only: false)
-    parent_ids = parent_ids.to_a
+    parent_ids = coerce_sql_ids(parent_ids.to_a)
     parent_ids_clause = parent_ids.empty? ? "" : " OR taxon_counts.tax_id in (#{parent_ids.join(',')}) "
 
     pr_id_to_sample_id = HeatmapHelper.get_latest_pipeline_runs_for_samples(samples)
@@ -261,6 +276,9 @@ module HeatmapHelper
   end
 
   def self.samples_taxons_counts_query(background_id, pr_id_to_sample_id, taxon_ids, parent_ids_clause)
+    # Coerce interpolated IDs to integers at the SQL boundary (injection guard).
+    taxon_ids = coerce_sql_ids(taxon_ids)
+    pipeline_run_ids = coerce_sql_ids(pr_id_to_sample_id.keys)
     TaxonCount.connection.select_all("
       SELECT
         taxon_counts.pipeline_run_id          AS  pipeline_run_id,
@@ -293,7 +311,7 @@ module HeatmapHelper
         taxon_counts.tax_level  = taxon_summaries.tax_level       AND
         taxon_counts.tax_id     = taxon_summaries.tax_id
       WHERE
-        pipeline_run_id IN (#{pr_id_to_sample_id.keys.join(',')})
+        pipeline_run_id IN (#{pipeline_run_ids.join(',')})
         AND taxon_counts.genus_taxid != #{TaxonLineage::BLACKLIST_GENUS_ID}
         AND taxon_counts.count_type IN ('NT', 'NR')
         AND (taxon_counts.tax_id IN (#{taxon_ids.join(',')})
@@ -303,6 +321,9 @@ module HeatmapHelper
 
   def self.background_metrics_query(background_id, pr_id_to_sample_id, taxon_ids)
     # Only fetch metrics that are affected by the selected background.
+    # Coerce interpolated IDs to integers at the SQL boundary (injection guard).
+    taxon_ids = coerce_sql_ids(taxon_ids)
+    pipeline_run_ids = coerce_sql_ids(pr_id_to_sample_id.keys)
     TaxonCount.connection.select_all("
       SELECT
         taxon_counts.pipeline_run_id          AS  pipeline_run_id,
@@ -321,7 +342,7 @@ module HeatmapHelper
         taxon_counts.tax_level  = taxon_summaries.tax_level       AND
         taxon_counts.tax_id     = taxon_summaries.tax_id
       WHERE
-        pipeline_run_id IN (#{pr_id_to_sample_id.keys.join(',')})
+        pipeline_run_id IN (#{pipeline_run_ids.join(',')})
         AND taxon_counts.genus_taxid != #{TaxonLineage::BLACKLIST_GENUS_ID}
         AND taxon_counts.count_type IN ('NT', 'NR')
         AND (taxon_counts.tax_id IN (#{taxon_ids.join(',')}))").to_a
