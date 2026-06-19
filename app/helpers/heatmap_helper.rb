@@ -212,7 +212,7 @@ module HeatmapHelper
   # This is the injection guard for the hand-written taxon_counts queries below:
   # the only safe thing to splice into an `IN (...)` list is an integer literal.
   # Mirrors the existing `Integer(x) rescue nil` treatment of removedTaxonIds
-  # (see sample_taxons_dict) — invalid entries are dropped rather than raising,
+  # (see sample_taxons_dict) -- invalid entries are dropped rather than raising,
   # since legitimate taxon / pipeline-run IDs are always integers, so valid
   # requests are unaffected and only malformed/malicious values are discarded.
   def self.coerce_sql_ids(ids)
